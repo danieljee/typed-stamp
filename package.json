@@ -9,7 +9,12 @@
   "author": "",
   "license": "ISC",
   "dependencies": {
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "sockjs": "^0.3.19"
   },
-  "devDependencies": {}
+  "devDependencies": {
+    "@types/lodash": "^4.14.118",
+    "@types/node": "^10.12.10",
+    "@types/sockjs": "^0.3.31"
+  }
 }
