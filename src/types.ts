@@ -18,4 +18,5 @@ export interface IComposable {
     [key: string]: any;
 }
 
+// ?
 export type stamp = (arg: IInitializerArg) => IComposable;

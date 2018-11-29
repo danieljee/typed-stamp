@@ -1,5 +1,5 @@
 import * as _ from 'lodash';
-import { IDescriptor, IInitializerArg, stamp } from './types';
+import { IDescriptor, IInitializerArg } from './types';
 
 /*
     Cut down version of example implementation
@@ -17,9 +17,9 @@ let baseComposable:IDescriptor = {
     methods:{}
 }
 
-function createStamp<initializerArgType>(descriptor: IDescriptor, initializers: Array<Function>): stamp{
+function createStamp<initializerArgType, instanceProps>(descriptor: IDescriptor, initializers: Array<Function>){
     return function factory(initializerArg: initializerArgType){
-        let instance = Object.create(descriptor.methods);
+        let instance: instanceProps = Object.create(descriptor.methods);
 
         Object.assign(instance, descriptor.properties);
         Object.assign(instance, descriptor.deepProperties);
@@ -40,11 +40,11 @@ function mergeComposables(mergedDescriptor:IDescriptor, src:IDescriptor){
     return mergedDescriptor;
 }
 
-export function compose<initializerArgType = IInitializerArg>(...composables: IDescriptor[]){
+export function compose<initializerArgType, instanceProps>(...composables: IDescriptor[]){
     let initializers = composables.map(composable => composable.initializer);
     let descriptor = composables.reduce(mergeComposables, baseComposable);
     
-    let stamp = createStamp<initializerArgType>(descriptor, initializers);
+    let stamp = createStamp<initializerArgType, instanceProps>(descriptor, initializers);
 
     return stamp;
 }
