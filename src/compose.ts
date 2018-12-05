@@ -2,7 +2,7 @@ import * as _ from 'lodash';
 import { IDescriptor, IInitializerArg } from './types';
 
 /*
-    Cut down version of example implementation
+    This is a simplified version of example implementation
     https://github.com/stampit-org/stamp-specification/blob/master/compose.js
 */
 
@@ -10,11 +10,13 @@ import { IDescriptor, IInitializerArg } from './types';
     TODO: private functions and private properties. 
 */
 
-let baseComposable:IDescriptor = {
-    properties:{},
-    propertyDescriptors:{},
-    deepProperties: {},
-    methods:{}
+function baseComposable(): IDescriptor{
+    return {
+        properties:{},
+        propertyDescriptors:{},
+        deepProperties: {},
+        methods:{}
+    }
 }
 
 function createStamp<initializerArgType, instanceProps>(descriptor: IDescriptor, initializers: Array<Function>){
@@ -42,7 +44,7 @@ function mergeComposables(mergedDescriptor:IDescriptor, src:IDescriptor){
 
 export function compose<initializerArgType, instanceProps>(...composables: IDescriptor[]){
     let initializers = composables.map(composable => composable.initializer);
-    let descriptor = composables.reduce(mergeComposables, baseComposable);
+    let descriptor = composables.reduce(mergeComposables, baseComposable());
     
     let stamp = createStamp<initializerArgType, instanceProps>(descriptor, initializers);
 

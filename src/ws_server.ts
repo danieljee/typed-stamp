@@ -10,6 +10,12 @@ import { compose } from './compose';
 
 export type ThisType = IProperties & IMethods<IProperties>;
 
+export interface IDescriptor<thisType> extends IDescriptorBase<thisType> {
+    initializer: InitializerTypeBase<thisType, IInitializerArg>;
+    properties: IProperties;
+    methods: IMethods<thisType>
+}
+
 export interface IMethods<thisType> extends IMethodsBase<thisType> {
     _createServer: (this:thisType) => void;
     _connectionHandler: (this:thisType) => void;
@@ -23,13 +29,6 @@ export interface IProperties {
     server_options: any;
 }
 
-
-export interface IDescriptor extends IDescriptorBase {
-    initializer: InitializerType;
-    properties: IProperties;
-    methods: IMethods<ThisType>
-}
-
 export interface IInitializerArg extends IInitializerArgBase {
     ws: {
         port: number;
@@ -37,9 +36,7 @@ export interface IInitializerArg extends IInitializerArgBase {
     }
 }
 
-export type InitializerType = InitializerTypeBase<ThisType, IInitializerArg>;
-
-export let descriptor: IDescriptor = {
+export let descriptor: IDescriptor<ThisType> = {
     initializer(arg){
         this.port = arg.ws.port || 443;
         this.http_server = arg.ws.http_server || http.createServer();

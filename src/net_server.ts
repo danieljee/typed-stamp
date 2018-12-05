@@ -9,6 +9,12 @@ import { compose } from './compose';
 
 export type ThisType = IProperties & IMethods<IProperties>;
 
+export interface IDescriptor<thisType> extends IDescriptorBase<thisType> {
+    initializer: InitializerTypeBase<thisType, IInitializerArg>;
+    properties: IProperties;
+    methods: IMethods<thisType>;
+}
+
 export interface IMethods<thisType> extends IMethodsBase<thisType> {
     setConfig: (this:thisType, config: IConfig) => void;
     getConfig: (this:thisType) => IConfig;
@@ -20,25 +26,17 @@ export interface IProperties {
     port: number;
 }
 
-export interface IDescriptor extends IDescriptorBase {
-    initializer: InitializerType;
-    properties: IProperties;
-    methods: IMethods<ThisType>;
-}
-
 export interface IInitializerArg extends IInitializerArgBase {
     net: {
         port: number;
     }
 }
 
-export type InitializerType = InitializerTypeBase<ThisType, IInitializerArg>;
-
 export interface IConfig {
     port: number;
 }
 
-export let descriptor: IDescriptor = {
+export let descriptor: IDescriptor<ThisType> = {
     initializer(arg){
         this.port = arg.net.port || 3050;
     },
