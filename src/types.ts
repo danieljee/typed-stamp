@@ -1,24 +1,31 @@
-export interface IMethods<thisType> {
-    [key: string]: (this: thisType, ...args:any[]) => any;
-}
+// often causes index signature missing type error.
+// export interface IMethodsBase<thisType> {
+//     [key: string]: (this: thisType, ...args:any[]) => any;
+// }
+export interface IMethodsBase<thisType> {}
 
-export interface IInitializerArg {}
+export type InitializerTypeBase<thisType, Arg> = (this: thisType, arg: Arg) => any;
 
-export type InitializerType<thisType, Arg = IInitializerArg> = (this: thisType, arg: Arg) => any;
-
-export interface IDescriptor<thisType = Object> {
-    methods?: IMethods<thisType>;
-    properties?: Object;
+export interface IDescriptorBase<thisType, initializerArg> {
+    methods: IMethodsBase<thisType>;
+    properties: Object;
     deepProperties?: Object;
     propertyDescriptors?: PropertyDescriptorMap;
-    initializer?: InitializerType<thisType>
+    initializers: Array<InitializerTypeBase<thisType, initializerArg>>
 }
 
 export interface IComposable {
     [key: string]: any;
 }
 
-export type stamp = (arg: IInitializerArg) => IComposable;
+export interface IStampMeta<thisType, initializerArg> extends IDescriptorBase<thisType, initializerArg>{
+    (any): any;
+}
+
+export interface IStamp<thisType, initializerArg> {
+    (any): any;
+    compose: IStampMeta<thisType, initializerArg>
+}
 
 export interface IJsonRpc {
     jsonrpc: '2.0',

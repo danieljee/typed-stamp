@@ -1,8 +1,6 @@
 import { 
-    IDescriptor as IDescriptorBase, 
-    IMethods as IMethodsBase, 
-    IInitializerArg as IInitializerArgBase,
-    InitializerType as InitializerTypeBase
+    IDescriptorBase, 
+    InitializerTypeBase
 } from './types';
 import * as http from 'http';
 import * as sockjs from 'sockjs';
@@ -10,7 +8,7 @@ import { EventEmitter } from 'events';
 import { compose } from './compose';
 import { is_json_rpc, to_json_rpc } from './utils';
 
-export type ThisType = IProperties & IMethods<IProperties> & EventEmitterType;
+export type ThisType = IProperties & IMethods & EventEmitterType;
 
 /*
     EventEmitterType was required to suppress typescript error
@@ -24,6 +22,7 @@ export type ThisType = IProperties & IMethods<IProperties> & EventEmitterType;
     The transpiler would throw an error saying that it violates index structure of IMethodsBase
     since EventEmitter does not have a define index structure whereas IMethodsBase does ([key:string])
 */
+
 type EventEmitterType = {
     [k in keyof EventEmitter]: EventEmitter[k];
 }
@@ -32,18 +31,11 @@ interface IHandlers {
     [key:string]: Function
 }
 
-export interface IDescriptor<thisType> extends IDescriptorBase<thisType> {
-    initializer: InitializerTypeBase<thisType, IInitializerArg>;
-    properties: IProperties;
-    methods: IMethods<thisType> & EventEmitterType
-}
-
-export interface IMethods<thisType> {
-    create_server: (this:thisType) => void;
-    connection_handler: (this:thisType, conn) => void;
-    ws_run: (this:thisType) => void;
-    conn_close_handler: (this:thisType) => void;
-    add_rpc_handler: (this:thisType, method: string, handler: Function) => void;
+export interface IInitializerArg {
+    ws: {
+        port: number;
+        http_server: http.Server | null;
+    }
 }
 
 export interface IProperties {
@@ -51,43 +43,43 @@ export interface IProperties {
     echo: sockjs.Server;
     http_server: http.Server;
     server_options?: any;
-    _connection_handler?: Function;
     handlers?: IHandlers;
 }
 
-export interface IInitializerArg extends IInitializerArgBase {
-    ws: {
-        port: number;
-        http_server: http.Server | null;
-    }
+export interface IMethods {
+    create_server: (this:ThisType) => void;
+    connection_handler: (this:ThisType, conn) => void;
+    ws_run: (this:ThisType) => void;
+    add_rpc_handler: (this:ThisType, method: string, handler: Function) => void;
 }
 
-/*
-    TODO
-    Find a way to enforce properties on thisType to be defined before use.
-    E.g.
-    initializer(arg){
-        this.undefined_property(); // Not allowed.
-    }
-     
-*/
+export interface IDescriptor extends IDescriptorBase<ThisType, IInitializerArg> {
+    properties: IProperties;
+    methods: IMethods & EventEmitterType;
+}
 
-let methods: IMethods<ThisType> = {
+/**
+ * Hack for making sure descriptor does not have extra properties.
+ */
+type MissingKeysInIDescriptor = Exclude<keyof IDescriptorBase<ThisType, IInitializerArg>, keyof IDescriptor>
+
+type ExtraKeysInIDescriptor = { 
+    [K in keyof IDescriptor]: Extract<keyof IDescriptorBase<ThisType, IInitializerArg>, K> extends never ? K : never 
+}[keyof IDescriptor];
+
+type VerifyIDescriptor<
+    Missing extends never = MissingKeysInIDescriptor,
+    Extra extends never = ExtraKeysInIDescriptor
+> = 0;
+
+let methods: IMethods = {
     create_server() {
         if (!this.http_server) this.http_server = http.createServer();
         this.echo = sockjs.createServer(this.server_options);
         //@ts-ignore
-        // this.echo.attach(this.http_server);
-        
+        this.echo.attach(this.http_server);
     },
 
-    /**
-     * Handles messages in json rpc format
-     * If handlers are not found for the method,
-     * event is emitted and method name is used as event name.
-     * Therefore listeners can be assigned to handle messages.
-     * @param conn 
-     */
     connection_handler(conn: sockjs.Connection) {
         conn.on('data', (data: string) => {
             let payload = JSON.parse(data);
@@ -97,30 +89,27 @@ let methods: IMethods<ThisType> = {
             else this.emit(payload.method, payload.params); 
         })
 
-        conn.on('close', this.conn_close_handler)
-    },
-
-    conn_close_handler() {
-
+        conn.on('close', () => {})
     },
 
     ws_run() {
-        console.log(`running ws server on port ${this.port}`);
         if (!this.echo) this.create_server();
         this.http_server.listen(this.port);
-        this.echo.on('connection', this._connection_handler);
+        this.echo.on('connection', this.connection_handler);
     },
     
     add_rpc_handler(method: string, handler: Function) {
-
+        this.handlers[method] = handler;
     }
 }
 
-export let descriptor: IDescriptor<ThisType> = {
-    initializer(arg){
-        this.port = arg.ws.port || 443;
-        this.http_server = arg.ws.http_server || http.createServer();
-    },
+let descriptor: IDescriptor = {
+    initializers: [
+        function ws_initializer(arg) {
+            this.port = arg.ws.port || 443;
+            this.http_server = arg.ws.http_server || http.createServer();
+        }
+    ],
     methods: Object.assign(<EventEmitterType>EventEmitter.prototype, methods),
     properties: {
         server_options: {},
@@ -131,4 +120,4 @@ export let descriptor: IDescriptor<ThisType> = {
     deepProperties: {}
 }
 
-export default compose(descriptor);
+export let stamp = compose(descriptor);

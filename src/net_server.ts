@@ -1,32 +1,13 @@
 import { 
-    IDescriptor as IDescriptorBase, 
-    IMethods as IMethodsBase,
-    IInitializerArg as IInitializerArgBase,
-    InitializerType as InitializerTypeBase
+    IDescriptorBase, 
+    InitializerTypeBase
 } from './types';
 import * as net from 'net';
 import { compose } from './compose';
 
-export type ThisType = IProperties & IMethods<IProperties>;
+export type ThisType = IProperties & IMethods;
 
-export interface IDescriptor<thisType> extends IDescriptorBase<thisType> {
-    initializer: InitializerTypeBase<thisType, IInitializerArg>;
-    properties: IProperties;
-    methods: IMethods<thisType>;
-}
-
-export interface IMethods<thisType> extends IMethodsBase<thisType> {
-    setConfig: (this:thisType, config: IConfig) => void;
-    getConfig: (this:thisType) => IConfig;
-    net_run: (this:thisType) => void;
-}
-
-export interface IProperties {
-    [key: string]: any;
-    port: number;
-}
-
-export interface IInitializerArg extends IInitializerArgBase {
+export interface IInitializerArg {
     net: {
         port: number;
     }
@@ -36,15 +17,33 @@ export interface IConfig {
     port: number;
 }
 
-export let descriptor: IDescriptor<ThisType> = {
-    initializer(arg){
-        this.port = arg.net.port || 3050;
-    },
+export interface IMethods {
+    set_config: (this:ThisType, config: IConfig) => void;
+    get_config: (this:ThisType) => IConfig;
+    net_run: (this:ThisType) => void;
+}
+
+export interface IProperties {
+    [key: string]: any;
+    port: number;
+}
+
+export interface IDescriptor extends IDescriptorBase<ThisType, IInitializerArg> {
+    properties: IProperties;
+    methods: IMethods;
+}
+
+let descriptor: IDescriptor = {
+    initializers: [
+        function net_initializer(arg) {
+            this.port = arg.net.port || 3050;
+        }
+    ],
     methods: {
-        setConfig(config: IConfig) {
+        set_config(config: IConfig) {
             this.config = config;
         },
-        getConfig() {
+        get_config() {
             return this.config;
         },
         net_run() {
@@ -57,4 +56,4 @@ export let descriptor: IDescriptor<ThisType> = {
     deepProperties: {}
 }
 
-export default compose(descriptor);
+export let stamp = compose(descriptor);
